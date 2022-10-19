@@ -1,6 +1,6 @@
 <?php
 
-namespace Cleantalk\Common;
+namespace Cleantalk\Common\RemoteCalls;
 
 use Cleantalk\Common\Variables\Request;
 use Cleantalk\Common\StorageHandler\StorageHandler;
