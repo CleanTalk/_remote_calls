@@ -5,7 +5,7 @@ namespace Cleantalk\Common\RemoteCalls;
 use Cleantalk\Common\Variables\Request;
 use Cleantalk\Common\StorageHandler\StorageHandler;
 
-abstract class RemoteCalls
+class RemoteCalls
 {
 
     const COOLDOWN = 10;
