@@ -2,7 +2,8 @@
 
 namespace Cleantalk\Common\RemoteCalls;
 
-use Cleantalk\Common\Mloader\Mloader;
+use Cleantalk\Common\RemoteCalls\Exceptions\RemoteCallsException;
+use Cleantalk\Common\StorageHandler\StorageHandler;
 use Cleantalk\Common\Variables\Request;
 
 class RemoteCalls
@@ -21,9 +22,21 @@ class RemoteCalls
      */
     protected $available_rc_actions;
 
-    public function __construct($api_key)
+    /**
+     * @var bool
+     */
+    protected $rc_running;
+
+    /**
+     * For the testing purpose - mock the StorageHandler into this property
+     * @var StorageHandler
+     */
+    public $storage_handler_class;
+
+    public function __construct($api_key, StorageHandler $storage_handler_class)
     {
         $this->api_key = $api_key;
+        $this->storage_handler_class = $storage_handler_class;
         $this->available_rc_actions = $this->getAvailableRcActions();
     }
 
@@ -54,71 +67,68 @@ class RemoteCalls
     /**
      * Execute corresponding method of RemoteCalls if exists
      *
-     * @return void|string
+     * @throws RemoteCallsException
+     *
+     * @return string
      */
     public function process()
     {
-        $action = strtolower(static::getVariable('spbc_remote_call_action'));
         $token = strtolower(static::getVariable('spbc_remote_call_token'));
 
-        $actions = $this->available_rc_actions;
-
-        if ( count($actions) !== 0 && array_key_exists($action, $actions) ) {
-            $cooldown = isset($actions[$action]['cooldown']) ? $actions[$action]['cooldown'] : self::COOLDOWN;
-
-            // Return OK for test remote calls
-            if ( static::getVariable('test') ) {
-                die('OK');
-            }
-
-            if ( time() - $actions[$action]['last_call'] >= $cooldown ) {
-                $actions[$action]['last_call'] = time();
-
-                $this->setLastCall($action);
-
-                // Check API key
-                if ( $token === strtolower(md5($this->api_key)) ) {
-                    // Flag to let plugin know that Remote Call is running.
-                    $this->rc_running = true;
-
-                    $action_method = 'action__' . $action;
-
-                    if ( method_exists(static::class, $action_method) ) {
-                        // Delay before perform action;
-                        if ( static::getVariable('delay') ) {
-                            sleep(static::getVariable('delay'));
-                        }
-
-                        try {
-                            $action_result = static::$action_method();
-
-                            $response = empty($action_result['error'])
-                                ? 'OK'
-                                : 'FAIL ' . json_encode(array('error' => $action_result['error']));
-
-                            if ( ! static::getVariable('continue_execution') ) {
-                                die($response);
-                            }
-
-                            return $response;
-                        } catch ( \Exception $exception ) {
-                            error_log('RC error: ' . var_export($exception->getMessage(), 1));
-                            $out = 'FAIL ' . json_encode(array('error' => $exception->getMessage()));
-                        }
-                    } else {
-                        $out = 'FAIL ' . json_encode(array('error' => 'UNKNOWN_ACTION_METHOD'));
-                    }
-                } else {
-                    $out = 'FAIL ' . json_encode(array('error' => 'WRONG_TOKEN'));
-                }
-            } else {
-                $out = 'FAIL ' . json_encode(array('error' => 'TOO_MANY_ATTEMPTS'));
-            }
-        } else {
-            $out = 'FAIL ' . json_encode(array('error' => 'UNKNOWN_ACTION'));
+        if ( $token !== strtolower(md5($this->api_key)) ) {
+            throw new RemoteCallsException('WRONG_TOKEN');
         }
 
-        die($out);
+        $action = strtolower(static::getVariable('spbc_remote_call_action'));
+        $actions = $this->available_rc_actions;
+
+        if ( ! count($actions) ) {
+            throw new RemoteCallsException('Available RC actions did not loaded.');
+        }
+
+        if ( ! array_key_exists($action, $actions) ) {
+            throw new RemoteCallsException('Not available RC action was provided.');
+        }
+
+        // Return OK for test remote calls
+        if ( static::getVariable('test') ) {
+            return 'OK';
+        }
+
+        $cooldown = isset($actions[$action]['cooldown']) ? $actions[$action]['cooldown'] : self::COOLDOWN;
+
+        if ( time() - $actions[$action]['last_call'] < $cooldown ) {
+            throw new RemoteCallsException('TOO_MANY_ATTEMPTS');
+        }
+
+        $this->setLastCall($action);
+        // Flag to let plugin know that Remote Call is running.
+        $this->rc_running = true;
+
+        $action_method = 'action__' . $action;
+
+        if ( ! method_exists(static::class, $action_method) ) {
+            throw new RemoteCallsException('UNKNOWN_ACTION_METHOD: ' . $action_method);
+        }
+
+        // Delay before perform action;
+        if ( static::getVariable('delay') ) {
+            sleep(static::getVariable('delay'));
+        }
+
+        try {
+            $action_result = static::$action_method();
+
+            // Supports old results returned an array ['error'=>'Error text']
+            if ( $action_result['error'] ) {
+                throw new RemoteCallsException($action_result['error']);
+            }
+
+            // @ToDo we can returning the RC result instead of simple 'OK'
+            return 'OK';
+        } catch ( \Exception $exception ) {
+            throw new RemoteCallsException('RC result error: ' . $exception->getMessage());
+        }
     }
 
     /**
@@ -128,9 +138,7 @@ class RemoteCalls
      */
     protected function getAvailableRcActions()
     {
-        /** @var \Cleantalk\Common\StorageHandler\StorageHandler $storage_handler_class */
-        $storage_handler_class = Mloader::get('StorageHandler');
-        $actions = $storage_handler_class::getSetting(static::OPTION_NAME);
+        $actions = $this->storage_handler_class->getSetting(static::OPTION_NAME);
         return $actions ?: $this->available_rc_actions;
     }
 
@@ -142,13 +150,12 @@ class RemoteCalls
      */
     protected function setLastCall($action)
     {
-        /** @var \Cleantalk\Common\StorageHandler\StorageHandler $storage_handler_class */
-        $storage_handler_class = Mloader::get('StorageHandler');
         $this->available_rc_actions[$action]['last_call'] = time();
-        return $storage_handler_class::saveSetting(static::OPTION_NAME, $this->available_rc_actions);
+        return $this->storage_handler_class->saveSetting(static::OPTION_NAME, $this->available_rc_actions);
     }
 
     /************************ Making Request Methods ************************/
+    // @ToDo methods below must be replaced to the another class
 
     public static function getSiteUrl()
     {

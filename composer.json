@@ -12,13 +12,19 @@
   "require": {
     "cleantalk/apbct-installer": "*",
     "cleantalk/variables": "*",
-    "cleantalk/mloader": "*"
+    "cleantalk/mloader": "*",
+    "cleantalk/storage-handler": "*"
   },
   "require-dev": {
     "vimeo/psalm": "^4.8",
     "phpunit/phpunit": "^7.5",
     "squizlabs/php_codesniffer": "3.*",
     "phpcompatibility/php-compatibility": "^9.3"
+  },
+  "autoload": {
+    "psr-4": {
+      "Cleantalk\\Common\\RemoteCalls\\": "/"
+    }
   },
   "config": {
     "allow-plugins": {
