@@ -15,7 +15,7 @@ $remote_calls = new \Cleantalk\Common\RemoteCalls\RemoteCalls($api_key, $storage
 if ( $remote_calls::check() ) {
     try {
         die $remote_calls->process();
-    } catch ( \Cleantalk\Common\RemoteCalls\Exceptions\RemoteCallsException $e ) {
+    } catch ( \Cleantalk\Common\RemoteCalls\Exceptions\RemoteCallsException $exception ) {
         // Do logging here
         die 'FAIL ' . json_encode(array('error' => $exception->getMessage()))
     }
