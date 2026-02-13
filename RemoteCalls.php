@@ -57,8 +57,9 @@ class RemoteCalls
      */
     public static function check()
     {
-        if (Get::get('spbc_remote_call_action')) {
-            Get::get('spbc_remote_call_token')
+        if (
+            static::getVariable('spbc_remote_call_action')) {
+            static::getVariable('spbc_remote_call_token')
             ? self::checkWithToken()
             : self::checkWithoutToken();
         }
@@ -67,7 +68,7 @@ class RemoteCalls
 
     public static function checkWithToken()
     {
-        return in_array(Get::get('plugin_name'), array('antispam', 'anti-spam', 'apbct'));
+        return in_array(static::getVariable('plugin_name'), array('antispam', 'anti-spam', 'apbct'));
     }
 
     public static function checkWithoutToken()
@@ -82,13 +83,13 @@ class RemoteCalls
         $client_ip = Helper::ipGet('remote_addr');
         $verified_hostname = $client_ip ? Helper::ip__resolve($client_ip) : false;
         $is_noc_request = ! $apbct->key_is_ok &&
-            in_array(Get::get('plugin_name'), array('antispam', 'anti-spam', 'apbct')) &&
+            in_array(static::getVariable('plugin_name'), array('antispam', 'anti-spam', 'apbct')) &&
             $verified_hostname !== false &&
             in_array($verified_hostname, $rc_servers, true);
 
         // no token needs for this action, at least for now
         // todo Probably we still need to validate this, consult with analytics team
-        $is_wp_nonce_request = $apbct->key_is_ok && Get::get('spbc_remote_call_action') === 'get_fresh_wpnonce';
+        $is_wp_nonce_request = $apbct->key_is_ok && static::getVariable('spbc_remote_call_action') === 'get_fresh_wpnonce';
 
         return $is_wp_nonce_request || $is_noc_request;
     }
