@@ -57,8 +57,7 @@ class RemoteCalls
      */
     public static function check()
     {
-        if (
-            static::getVariable('spbc_remote_call_action')) {
+        if (static::getVariable('spbc_remote_call_action')) {
             static::getVariable('spbc_remote_call_token')
             ? self::checkWithToken()
             : self::checkWithoutToken();
