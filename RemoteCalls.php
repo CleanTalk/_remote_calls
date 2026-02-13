@@ -80,7 +80,7 @@ class RemoteCalls
         ];
         // Resolve IP of the client making the request and verify hostname from it to be in the list of RC servers hostnames
         $client_ip = Helper::ipGet('remote_addr');
-        $verified_hostname = $client_ip ? Helper::ip__resolve($client_ip) : false;
+        $verified_hostname = $client_ip ? Helper::ipResolve($client_ip) : false;
         $is_noc_request = ! $apbct->key_is_ok &&
             in_array(static::getVariable('plugin_name'), array('antispam', 'anti-spam', 'apbct')) &&
             $verified_hostname !== false &&
