@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 class RemoteCallsTestWrongRequest extends TestCase
 {
-    public function setUp()
+    public function setUp(): void
     {
         /** @var \Cleantalk\Common\StorageHandler\StorageHandler $storage_handler */
         $storage_handler = $this->generateStorageHandlerMockObject();
@@ -37,7 +37,7 @@ class RemoteCallsTestWrongRequest extends TestCase
         return $mock;
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         Request::resetInstance();
     }

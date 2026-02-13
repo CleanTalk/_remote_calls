@@ -58,13 +58,12 @@ class RemoteCalls
     public static function check()
     {
         if (Get::get('spbc_remote_call_action')) {
-            Get::get( 'spbc_remote_call_token' )
+            Get::get('spbc_remote_call_token')
             ? self::checkWithToken()
             : self::checkWithoutToken();
         }
         return false;
-
-	}
+    }
 
     public static function checkWithToken()
     {
