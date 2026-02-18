@@ -57,11 +57,17 @@ class RemoteCalls
      */
     public static function check()
     {
-        return
-            static::getVariable('spbc_remote_call_token') &&
-            static::getVariable('spbc_remote_call_action') &&
-            static::getVariable('plugin_name') &&
-            in_array(static::getVariable('plugin_name'), array('antispam', 'anti-spam', 'apbct'));
+        if (static::getVariable('spbc_remote_call_action')) {
+            static::getVariable('spbc_remote_call_token')
+            ? self::checkWithToken()
+            : false;
+        }
+        return false;
+    }
+
+    public static function checkWithToken()
+    {
+        return in_array(static::getVariable('plugin_name'), array('antispam', 'anti-spam', 'apbct'));
     }
 
     /**
