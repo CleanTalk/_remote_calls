@@ -172,7 +172,7 @@ class RemoteCalls
         );
 
         $host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '';
-        $host = preg_replace('/[^A-Za-z0-9.\-:]/', '', $host);
+        $host = preg_replace('/[^A-Za-z0-9.\-:\[\]]/', '', $host);
 
         $path = '';
         if ( isset($_SERVER['SCRIPT_URL']) ) {
@@ -183,7 +183,11 @@ class RemoteCalls
 
         $path = $path ? (string)$path : '';
         $path = preg_replace('/[\x00-\x1F\x7F]/', '', $path);
-        $path = preg_replace('/[^A-Za-z0-9\-._~\/]/', '', $path);
+        $path = preg_replace('/[^A-Za-z0-9\-._~\/%]/', '', $path);
+        $path = preg_replace_callback('/%[0-9a-fA-F]{2}/', static function ($matches) {
+            return strtoupper($matches[0]);
+        }, $path);
+        $path = preg_replace('/%(?![0-9A-Fa-f]{2})/', '', $path);
         if ( $path !== '' && $path[0] !== '/' ) {
             $path = '/' . $path;
         }
